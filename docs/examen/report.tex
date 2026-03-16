@@ -1,0 +1,165 @@
+\documentclass[11pt,a4paper]{article}
+
+% ----------------------------------------------------
+% PACKAGES ESSENTIELS
+% ----------------------------------------------------
+% Nota: inputenc se omite a menudo en compiladores modernos (LuaLaTeX/XeLaTeX),
+% pero se mantiene aquí por compatibilidad con el código original si usas PDFLaTeX.
+%\usepackage[utf8]{inputenc}     % Encodage du texte (UTF-8)
+\usepackage[T1]{fontenc}        % Encodage des caractères
+\usepackage[french]{babel}      % Langue du document
+\usepackage{geometry}           % Gestion des marges
+\usepackage{graphicx}           % Insertion d’images
+\usepackage{amsmath, amssymb}   % Symboles et équations mathématiques
+\usepackage{siunitx}            % Unités du Système International (SI)
+\usepackage{caption}            % Amélioration des légendes
+\usepackage{subcaption}         % Sous-figures
+\usepackage{booktabs}           % Tableaux esthétiques
+\usepackage{tabularx}           % Tableaux largeur fixe
+\usepackage{float}              % Contrôle de la position des figures
+\usepackage{xcolor}             % Gestion des couleurs
+\usepackage{fancyhdr}           % En-têtes et pieds de page personnalisés
+\usepackage{enumitem}           % Listes personnalisées
+\usepackage{physics}            % Notation physique (contraintes, etc.)
+\usepackage{titlesec}           % Style des sections
+\usepackage[strict]{changepage} % Ajustement des marges locales
+\usepackage{framed}             % Cadres et encadrés
+
+% Ajuster la hauteur d'en-tête pour fancyhdr
+\setlength{\headheight}{14pt}
+
+% Hyperref doit être chargé en dernier (généralement)
+\usepackage{hyperref}           % Liens cliquables dans le PDF
+
+% ----------------------------------------------------
+% PARAMÈTRES DE MISE EN PAGE
+% ----------------------------------------------------
+\geometry{margin=2.5cm}            % Marges du document
+\setlength{\parskip}{0.5em}        % Espacement entre paragraphes
+\setlength{\parindent}{0pt}        % Pas d’indentation au début des paragraphes
+
+% ----------------------------------------------------
+% CONFIGURATION DES LIENS
+% ----------------------------------------------------
+\hypersetup{
+    colorlinks=true,
+    linkcolor=enstaBleuFonce, % Utilisation de la couleur ENSTA pour les liens internes (TOC)
+    urlcolor=blue,
+    citecolor=gray
+}
+
+% ----------------------------------------------------
+% COULEURS ENSTA
+% ----------------------------------------------------
+\definecolor{enstaBleuFonce}{HTML}{003366}    % Bleu marine (sections)
+\definecolor{enstaBleuClair}{HTML}{0073CF}    % Bleu moyen (sous-sections)
+\definecolor{formalshade}{rgb}{0.95,0.95,1}   % Fond clair pour encadrés
+
+% ----------------------------------------------------
+% STYLE DES SECTIONS
+% ----------------------------------------------------
+% Section (bleu marine, majuscule, gras, ligne horizontale)
+\titleformat{\section}[block]
+  {\normalfont\Large\bfseries\color{enstaBleuFonce}}
+  {\thesection}{1em}{}
+  [\vspace{0.3em}\titlerule\color{enstaBleuFonce}\vspace{0.3em}]
+
+% Sous-section (bleu clair)
+\titleformat{\subsection}
+  {\normalfont\large\bfseries\color{enstaBleuClair}}
+  {\thesubsection}{1em}{}
+
+% Sous-sous-section (gris)
+\titleformat{\subsubsection}
+  {\normalfont\normalsize\bfseries\color{black!70}}
+  {\thesubsubsection}{1em}{}
+
+% ----------------------------------------------------
+% EN-TÊTES ET PIEDS DE PAGE
+% ----------------------------------------------------
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{ENSTA | IP Paris}
+\fancyhead[R]{Examen Systèmes parallèles et distribués}
+\fancyfoot[C]{\thepage}
+
+% ----------------------------------------------------
+% ENVIRONNEMENT FORMAL (ENCADRÉ)
+% ----------------------------------------------------
+\newenvironment{formal}{%
+\def\FrameCommand{%
+  \hspace{1pt}%
+  {\color{enstaBleuFonce}\vrule width 2pt}%
+  {\color{formalshade}\vrule width 4pt}%
+  \colorbox{formalshade}%
+}%
+\MakeFramed{\advance\hsize-\width\FrameRestore}%
+\noindent\hspace{-4.55pt}%
+\begin{adjustwidth}{}{7pt}%
+\vspace{4pt}%
+}{%
+\vspace{4pt}\end{adjustwidth}\endMakeFramed%
+}
+
+% ----------------------------------------------------
+% DÉBUT DU DOCUMENT
+% ----------------------------------------------------
+\begin{document}
+
+% ====================================================
+% PAGE DE COUVERTURE
+% ====================================================
+\begin{titlepage}
+    \centering
+    \vspace*{4cm}
+    
+    \includegraphics[width=0.6\textwidth]{imgs/logo_ensta_2025.jpg}\par\vspace{0.5cm}
+    
+    \vspace{0.5cm}
+    {\Large Systèmes parallèles et distribués  \par}
+    \vspace{0.2cm}
+    {\huge\bfseries Examen \par}
+    \vspace{3cm}
+    {\Large Javier andres TARAZONA JIMENEZ \par}
+    {\Large Jose Daniel CHACON \par}
+    {\Large  \par}
+    \vspace{1.5cm}
+    \textbf{Encadrant :} JUVIGNY Xavier \par
+    \vfill
+    École Nationale Supérieure des Techniques Avancées (ENSTA) | IP Paris\\
+    Majeure STIC\\
+    Mars 2026 \par
+\end{titlepage}
+
+% ====================================================
+% TABLE DES MATIÈRES (ÍNDICE)
+% ====================================================
+\newpage
+% Change le nom "Table des matières" si nécessaire avec :
+% \renewcommand{\contentsname}{Sommaire}
+\tableofcontents
+\newpage
+
+% ====================================================
+% INTRODUCTION
+% ====================================================
+
+\section{Introduction}
+
+En un ejercio de mallas de corte en direccion alternada
+con celdas fantasmas, Alice
+programa un codigoe en el que si tieene arirba, abajo,
+izquierda y derecha, va a hace runa recpcion no bloqueante de 
+una subimagen (con menjo de indices) y luego va a enviar su 
+subimagen .
+
+
+Que priblema de mieen euvre y de rendimiento podria tener esa solucion y cual
+seria la solucion ?
+
+
+%---------------------------------------------------
+% FIN DU RAPPORT.
+%---------------------------------------------------
+
+\end{document}
