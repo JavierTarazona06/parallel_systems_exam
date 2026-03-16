@@ -1,4 +1,4 @@
-name: Build LaTeX PDF
+name: Build and Deploy LaTeX PDF
 
 on:
   push:
@@ -8,10 +8,16 @@ on:
 jobs:
   build_pdf:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+
+      - name: Configure GitHub Pages
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: actions/configure-pages@v5
 
       - name: Compile LaTeX document
         uses: xu-cheng/latex-action@v3
@@ -19,8 +25,110 @@ jobs:
           root_file: docs/examen/examen.tex
           work_in_root_file_dir: true
 
+      - name: Prepare GitHub Pages site
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        run: |
+          mkdir -p site
+          cp docs/examen/examen.pdf site/examen.pdf
+          cat > site/index.html <<'EOF'
+          <!doctype html>
+          <html lang="es">
+          <head>
+            <meta charset="utf-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1">
+            <title>Examen PDF</title>
+            <style>
+              :root {
+                color-scheme: light;
+                --bg: #f3f0e8;
+                --card: #fffdf8;
+                --text: #1d2733;
+                --accent: #0f5c7a;
+                --muted: #5a6874;
+                --border: #d8d0c2;
+              }
+              * { box-sizing: border-box; }
+              body {
+                margin: 0;
+                min-height: 100vh;
+                display: grid;
+                place-items: center;
+                padding: 24px;
+                background:
+                  radial-gradient(circle at top, #fff6d8 0, transparent 35%),
+                  linear-gradient(135deg, #f3f0e8, #e5edf0);
+                color: var(--text);
+                font-family: Georgia, "Times New Roman", serif;
+              }
+              main {
+                width: min(680px, 100%);
+                background: var(--card);
+                border: 1px solid var(--border);
+                border-radius: 18px;
+                padding: 32px;
+                box-shadow: 0 18px 40px rgba(29, 39, 51, 0.10);
+              }
+              h1 {
+                margin: 0 0 12px;
+                font-size: clamp(2rem, 4vw, 3rem);
+                line-height: 1.05;
+              }
+              p {
+                margin: 0 0 16px;
+                color: var(--muted);
+                font-size: 1.05rem;
+                line-height: 1.6;
+              }
+              a {
+                display: inline-block;
+                margin-top: 8px;
+                padding: 12px 18px;
+                border-radius: 999px;
+                background: var(--accent);
+                color: #fff;
+                text-decoration: none;
+                font-weight: 700;
+              }
+              a:hover {
+                filter: brightness(1.05);
+              }
+            </style>
+          </head>
+          <body>
+            <main>
+              <h1>Examen de sistemas paralelos y distribuidos</h1>
+              <p>La version mas reciente del documento compilado esta disponible aqui.</p>
+              <a href="./examen.pdf">Abrir PDF</a>
+            </main>
+          </body>
+          </html>
+          EOF
+
+      - name: Upload GitHub Pages artifact
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: actions/upload-pages-artifact@v4
+        with:
+          path: site
+
       - name: Upload PDF artifact
         uses: actions/upload-artifact@v4
         with:
           name: pdf-output
           path: docs/examen/examen.pdf
+
+  deploy_pages:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: build_pdf
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
