@@ -96,9 +96,9 @@ jobs:
           </head>
           <body>
             <main>
-              <h1>Examen de sistemas paralelos y distribuidos</h1>
-              <p>La version mas reciente del documento compilado esta disponible aqui.</p>
-              <a href="./examen.pdf">Abrir PDF</a>
+              <h1>Parallel and Distributed Systems Exam</h1>
+              <p>The most recent version of the compiled document is available here.</p>
+              <a href="./examen.pdf">Open PDF</a>
             </main>
           </body>
           </html>
