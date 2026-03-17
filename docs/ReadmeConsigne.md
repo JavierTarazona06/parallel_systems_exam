@@ -83,7 +83,7 @@ Pour utiliser un jeu de donnée spécifique pour la simulation, vous pouvez pass
 __Exemple d'utilisation__ :
 
 ```shell
-python3 nbodies_grid_numba.py data/galaxy_5000 0.0015 15 15 1
+python3 src/nbodies_grid_numba.py data/galaxy_5000 0.0015 15 15 1
 ```
 
 lancera la simulation sur les données pour 5000 étoiles, avec un pas de temps de $\delta t=0.0015$, et une grille cartésienne avec 15 cellules en $N_{i}$, 15 cellules en $N_{j}$ et une cellule en $N_{k}$.
