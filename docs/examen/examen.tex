@@ -245,6 +245,19 @@ Un second changement a été introduit dans \texttt{update\_stars\_in\_grid}, ma
 
 Cette approche reste volontairement simple et conservatrice : elle permet d'obtenir une première version parallélisée sans refondre l'algorithme, tout en évitant d'introduire des erreurs liées aux accès concurrents sur des données partagées.
 
+\subsection{Accélération obtenue}
+
+L'accélération de la version parallélisée a été mesurée à l'aide du script \texttt{nbodies1\_acceleration.py} en faisant varier le nombre de threads \texttt{numba} de 1 à 8, ce qui correspond au nombre de cœurs physiques disponibles sur la machine d'expérimentation. Les paramètres utilisés ont été repris du fichier \texttt{results/experiment\_environment.csv}, à savoir le jeu de données \texttt{data/galaxy\_5000}, un pas de temps \texttt{0.0015}, une grille \texttt{(15, 15, 1)}, 30 itérations mesurées et 3 itérations d'échauffement.
+
+Les mesures portent uniquement sur le temps de calcul des trajectoires, sans prendre en compte l'affichage, afin d'évaluer directement l'effet de la parallélisation introduite par \texttt{parallel=True} et \texttt{prange}. L'accélération est calculée par rapport au temps moyen obtenu avec un seul thread.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\textwidth]{imgs/nbodies1_acceleration.png}
+    \caption{Temps moyen de calcul et accélération de \texttt{nbodies\_grid\_numba1.py} en fonction du nombre de threads.}
+\end{figure}
+
+La figure montre que le temps moyen par itération diminue lorsque le nombre de threads augmente, ce qui confirme l'intérêt de la parallélisation \texttt{numba} sur les boucles les plus coûteuses du calcul. La meilleure performance mesurée est obtenue avec 5 threads, pour une accélération d'environ \texttt{3.19x} par rapport à l'exécution mono-thread. L'accélération reste toutefois sous-linéaire, ce qui est cohérent avec la présence de parties demeurant séquentielles, avec les surcoûts de synchronisation entre threads et avec les accès mémoire partagés.
 
 %---------------------------------------------------
 % FIN DU RAPPORT.
