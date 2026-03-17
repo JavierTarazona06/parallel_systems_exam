@@ -263,6 +263,27 @@ L'accélération de la version parallélisée a été mesurée à l'aide du scri
 
 Les mesures portent uniquement sur le temps de calcul des trajectoires, sans prendre en compte l'affichage, afin d'évaluer directement l'effet de la parallélisation introduite par \texttt{parallel=True} et \texttt{prange}. L'accélération est calculée par rapport au temps moyen obtenu avec un seul thread.
 
+\begin{table}[H]
+    \centering
+    \caption{Résultats de la version \texttt{nbodies\_grid\_numba1.py} en fonction du nombre de threads.}
+    \begin{tabular}{rrrr}
+        \toprule
+        Threads & Temps moyen (ms) & Accélération & Efficacité \\
+        \midrule
+        1 & 166.04 & 1.00 & 1.00 \\
+        2 & 86.32 & 1.92 & 0.96 \\
+        3 & 62.67 & 2.65 & 0.88 \\
+        4 & 55.05 & 3.02 & 0.75 \\
+        5 & 52.03 & 3.19 & 0.64 \\
+        6 & 54.06 & 3.07 & 0.51 \\
+        7 & 59.46 & 2.79 & 0.40 \\
+        8 & 59.20 & 2.80 & 0.35 \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+
+
 \begin{figure}[H]
     \centering
     \includegraphics[width=\textwidth]{imgs/nbodies1_acceleration.png}
@@ -271,7 +292,7 @@ Les mesures portent uniquement sur le temps de calcul des trajectoires, sans pre
 
 La figure montre que le temps moyen par itération diminue lorsque le nombre de threads augmente, ce qui confirme l'intérêt de la parallélisation \texttt{numba} sur les boucles les plus coûteuses du calcul. La meilleure performance mesurée est obtenue avec 5 threads, pour une accélération d'environ \texttt{3.19x} par rapport à l'exécution mono-thread. L'accélération reste toutefois sous-linéaire, ce qui est cohérent avec la présence de parties demeurant séquentielles, avec les surcoûts de synchronisation entre threads et avec les accès mémoire partagés.
 
-\section{Séparation de l'affichage et du calcul}
+\section{MPI1 : Séparation de l'affichage et du calcul}
 
 Pour cette étape, une version dédiée du code a été préparée 
 dans le fichier \textbf{nbodies\_grid\_numba2.py}.
@@ -287,6 +308,27 @@ L'accélération de la version MPI séparant l'affichage et le calcul a été me
 
 Les mesures portent ici sur le temps moyen d'une itération de la version distribuée à deux processus MPI. Le processus 0 joue le rôle de processus d'affichage et de coordination, tandis que le processus 1 réalise le calcul des trajectoires. Le temps mesuré inclut donc le calcul proprement dit sur le rang 1 ainsi que les échanges MPI nécessaires pour transmettre les nouvelles positions au rang 0.
 
+\begin{table}[H]
+    \centering
+    \caption{Résultats de la version \texttt{nbodies\_grid\_numba2.py} en fonction du nombre de threads.}
+    \begin{tabular}{rrrr}
+        \toprule
+        Threads & Temps moyen (ms) & Accélération & Efficacité \\
+        \midrule
+        1 & 154.83 & 1.00 & 1.00 \\
+        2 & 87.24 & 1.77 & 0.89 \\
+        3 & 295.87 & 0.52 & 0.17 \\
+        4 & 239.44 & 0.65 & 0.16 \\
+        5 & 419.55 & 0.37 & 0.07 \\
+        6 & 362.96 & 0.43 & 0.07 \\
+        7 & 541.38 & 0.29 & 0.04 \\
+        8 & 477.46 & 0.32 & 0.04 \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+
+
 \begin{figure}[H]
     \centering
     \includegraphics[width=\textwidth]{imgs/nbodies2_acceleration.png}
@@ -294,6 +336,18 @@ Les mesures portent ici sur le temps moyen d'une itération de la version distri
 \end{figure}
 
 La figure montre que la version MPI bénéficie elle aussi de la parallélisation \texttt{numba} sur le processus de calcul, avec une diminution du temps moyen par itération lorsque le nombre de threads augmente. La meilleure performance observée est obtenue avec 2 threads, pour une accélération d'environ \texttt{1.77x} par rapport au cas à un seul thread. L'accélération reste cependant non linéaire, ce qui s'explique à la fois par les parties encore séquentielles du calcul et par le coût supplémentaire introduit par les communications MPI entre les deux processus.
+
+\subsection{Comparaison des accélérations parallélisation NUMBA et MPI1}
+
+La comparaison entre les deux approches met en évidence un comportement très différent. Dans le cas de la parallélisation \texttt{numba} seule, l'accélération croît de manière cohérente lorsque l'on augmente le nombre de threads, jusqu'à atteindre environ \texttt{3.19x} avec 5 threads. À l'inverse, dans la version MPI séparant l'affichage et le calcul, la meilleure performance n'est obtenue qu'avec 2 threads, pour une accélération d'environ \texttt{1.77x}, puis les performances se dégradent fortement au-delà.
+
+La raison principale vient du placement des processus MPI sur la machine. La vérification du \textit{binding} montre que le rang 0 est associé à un cœur et le rang 1 à un autre cœur. Or seul le rang 1 effectue le calcul des trajectoires. En pratique, cela signifie que le processus de calcul ne dispose effectivement que d'un nombre très limité de ressources CPU. Lorsque l'on demande plus de deux threads \texttt{numba}, ces threads supplémentaires se retrouvent en concurrence sur le même cœur physique, ce qui entraîne des surcoûts de synchronisation, des commutations de contexte et une perte d'efficacité importante.
+
+Les communications MPI ajoutent également un coût supplémentaire à chaque itération, puisque les nouvelles positions doivent être transmises du processus de calcul vers le processus d'affichage. Cependant, ce coût ne suffit pas à lui seul à expliquer l'effondrement des performances, car les résultats à 1 et 2 threads restent encore relativement proches de ceux de la version sans MPI. On peut donc conclure que la forte dégradation observée dans MPI1 provient avant tout d'un problème d'affinité et de partage des cœurs, auquel s'ajoute ensuite le coût des échanges MPI.
+
+En résumé, la version \texttt{numba} seule exploite beaucoup mieux le parallélisme en mémoire partagée sur cette machine, tandis que la version MPI1 souffre d'une exécution contrainte par le placement des processus et par les communications entre rangs. Cela explique pourquoi la séparation affichage/calcul, bien qu'intéressante d'un point de vue architectural, conduit ici à des accélérations nettement moins bonnes.
+
+
 
 %---------------------------------------------------
 % FIN DU RAPPORT.
