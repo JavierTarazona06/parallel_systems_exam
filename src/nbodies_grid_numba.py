@@ -241,16 +241,25 @@ def run_simulation(filename, geometry=(800,600), ncells_per_dir : tuple[int, int
     visu.run(updater=update_positions, dt = dt)
 
 
-filename = "data/galaxy_1000"
-dt = 0.001
-n_cells_per_dir = (20,20,1)
-if len(sys.argv) > 1:
-    filename = sys.argv[1]
-if len(sys.argv) > 2:
-    dt = float(sys.argv[2])
-if len(sys.argv) > 5:
-    n_cells_per_dir = (int(sys.argv[3]), int(sys.argv[4]), int(sys.argv[5]))
-    
-print(f"Simulation de {filename} avec dt = {dt} et grille {n_cells_per_dir}")
-run_simulation(filename, ncells_per_dir=n_cells_per_dir, dt=dt)
+def main(argv=None):
+    if argv is None:
+        argv = sys.argv[1:]
+
+    filename = "data/galaxy_1000"
+    dt = 0.001
+    n_cells_per_dir = (20, 20, 1)
+
+    if len(argv) > 0:
+        filename = argv[0]
+    if len(argv) > 1:
+        dt = float(argv[1])
+    if len(argv) > 4:
+        n_cells_per_dir = (int(argv[2]), int(argv[3]), int(argv[4]))
+
+    print(f"Simulation de {filename} avec dt = {dt} et grille {n_cells_per_dir}")
+    run_simulation(filename, ncells_per_dir=n_cells_per_dir, dt=dt)
+
+
+if __name__ == "__main__":
+    main()
     

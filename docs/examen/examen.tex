@@ -152,6 +152,41 @@ En observant la forme des galaxies, pourquoi il n'est pas
 intéressant de prendre une valeur pour $N_{k}$ autre que
  1 (sachant que $N_{k}$ donne le nombre de cellules en 
  $Oz$) ?
+
+Nk est le nombre de cellules de la grille 
+dans la direction Oz, c'est-à-dire sur l'axe z.
+
+ DOnc, il n’est pas intéressant de choisir une valeur de Nk 
+ différente de 1 car la galaxie simulée a une 
+ structure quasi plane : elle est essentiellement 
+ étendue dans le plan Oxy et très peu selon Oz. 
+ Découper l’espace en plusieurs cellules suivant 
+ z n’apporte donc presque aucune information 
+ supplémentaire, puisque la plupart des étoiles restent 
+ dans une couche très mince autour du plan galactique. 
+ En revanche, cela augmente le nombre de cellules, 
+ crée des cellules presque vides et alourdit les calculs. 
+ Il est donc plus pertinent de discrétiser seulement selon 
+ x et y, et de prendre Nk = 1.
+
+\section{Code à disposition}
+
+\begin{itemize}
+    \item \texttt{galaxy\_generator.py} : script de génération des jeux de données. Il crée une galaxie avec un trou noir central et des étoiles en orbite, puis enregistre les masses, positions et vitesses dans un fichier utilisable par les simulations.
+    \item \texttt{nbodies\_grid.py} : version de référence de la simulation par grille cartésienne. Les étoiles sont réparties dans des cellules, les interactions proches sont calculées explicitement, et les cellules lointaines sont approchées par leur masse totale et leur centre de masse.
+    \item \texttt{nbodies\_grid\_numba.py} : version optimisée avec \texttt{numba} de l'approche par grille. Ce script constitue la base principale du travail demandé pour accélérer et paralléliser le calcul des trajectoires.
+    \item \texttt{barnes\_hut\_numba.py} : implémentation de l'algorithme de Barnes-Hut reposant sur un quadtree dans le plan \texttt{Oxy}. Il sert surtout de point de comparaison, car cette méthode réduit le coût du calcul des interactions pour un grand nombre d'étoiles.
+\end{itemize}
+
+\section{Profilage Initiale}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\textwidth]{imgs/profilage_initial.png}
+    \caption{Comparaison du temps moyen passé dans l'affichage et dans le calcul pour \texttt{nbodies\_grid\_numba.py}.}
+\end{figure}
+
+
 %---------------------------------------------------
 % FIN DU RAPPORT.
 %---------------------------------------------------
