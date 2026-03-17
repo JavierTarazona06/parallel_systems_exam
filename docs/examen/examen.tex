@@ -273,13 +273,27 @@ La figure montre que le temps moyen par itération diminue lorsque le nombre de 
 
 \section{Séparation de l'affichage et du calcul}
 
+Pour cette étape, une version dédiée du code a été préparée 
+dans le fichier \textbf{nbodies\_grid\_numba2.py}.
 La stratégie retenue consiste à utiliser deux processus MPI avec une répartition fonctionnelle très simple. Le processus de rang 0 est dédié à l'affichage, tandis que le processus de rang 1 est dédié au calcul des trajectoires. Chaque processus charge localement le même système initial, mais leurs responsabilités sont ensuite séparées : le rang 0 crée la fenêtre SDL/OpenGL et gère l'interaction utilisateur, alors que le rang 1 exécute la mise à jour physique du système.
 
 Concrètement, le processus 0 pilote la boucle principale. À chaque itération, il traite les événements de la fenêtre, puis envoie au processus 1 un signal indiquant si la simulation doit continuer, ainsi que la valeur du pas de temps. Le processus 1 reçoit cette information, exécute \texttt{update\_positions(dt)} pour calculer les nouvelles positions des étoiles, puis renvoie le tableau des positions au processus 0 par MPI. Le processus 0 met alors à jour le visualiseur avec ces nouvelles positions et effectue le rendu de l'image.
 
 Cette approche présente l'avantage d'être minimale et facile à mettre en œuvre : elle ne modifie pas l'algorithme physique lui-même, mais sépare proprement la partie graphique de la partie calculatoire. Le processus 0 reste ainsi responsable de l'affichage et de l'arrêt de la simulation, tandis que le processus 1 se comporte comme un serveur de calcul qui ne fait qu'attendre les demandes du rang 0, calculer un pas de temps, puis renvoyer les résultats.
 
+\subsection{Accélération obtenue}
 
+L'accélération de la version MPI séparant l'affichage et le calcul a été mesurée à l'aide du script \texttt{nbodies2\_acceleration.py}. Comme pour la version précédente, le nombre de threads \texttt{numba} alloués au calcul a été fait varier de 1 à 8, ce qui correspond au nombre de cœurs physiques de la machine. Les paramètres expérimentaux ont été repris du fichier \texttt{results/experiment\_environment.csv}, soit le jeu de données \texttt{data/galaxy\_5000}, un pas de temps \texttt{0.0015}, une grille \texttt{(15, 15, 1)}, 30 itérations mesurées et 3 itérations d'échauffement.
+
+Les mesures portent ici sur le temps moyen d'une itération de la version distribuée à deux processus MPI. Le processus 0 joue le rôle de processus d'affichage et de coordination, tandis que le processus 1 réalise le calcul des trajectoires. Le temps mesuré inclut donc le calcul proprement dit sur le rang 1 ainsi que les échanges MPI nécessaires pour transmettre les nouvelles positions au rang 0.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\textwidth]{imgs/nbodies2_acceleration.png}
+    \caption{Temps moyen et accélération de \texttt{nbodies\_grid\_numba2.py} en fonction du nombre de threads de calcul.}
+\end{figure}
+
+La figure montre que la version MPI bénéficie elle aussi de la parallélisation \texttt{numba} sur le processus de calcul, avec une diminution du temps moyen par itération lorsque le nombre de threads augmente. La meilleure performance observée est obtenue avec 2 threads, pour une accélération d'environ \texttt{1.77x} par rapport au cas à un seul thread. L'accélération reste cependant non linéaire, ce qui s'explique à la fois par les parties encore séquentielles du calcul et par le coût supplémentaire introduit par les communications MPI entre les deux processus.
 
 %---------------------------------------------------
 % FIN DU RAPPORT.
