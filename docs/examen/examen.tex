@@ -178,6 +178,47 @@ dans la direction Oz, c'est-à-dire sur l'axe z.
     \item \texttt{barnes\_hut\_numba.py} : implémentation de l'algorithme de Barnes-Hut reposant sur un quadtree dans le plan \texttt{Oxy}. Il sert surtout de point de comparaison, car cette méthode réduit le coût du calcul des interactions pour un grand nombre d'étoiles.
 \end{itemize}
 
+\section{Environnement d'exécution}
+
+L'environnement d'exécution a été relevé automatiquement à l'aide du script \texttt{experiment\_environment.py}. Ce script enregistre dans le fichier \texttt{results/experiment\_environment.csv} les principales caractéristiques matérielles et logicielles de la machine utilisée, ainsi que les paramètres expérimentaux retenus pour exécuter le profilage initial.
+
+\begin{table}[H]
+    \centering
+    \caption{Environnement matériel, logiciel et paramètres utilisés pour le profilage initial.}
+    \begin{tabularx}{\textwidth}{lX}
+        \toprule
+        Élément & Valeur \\
+        \midrule
+        \multicolumn{2}{l}{\textbf{Ressources matérielles}} \\
+        Système d'exploitation & Linux 6.6.87.2-microsoft-standard-WSL2 \\
+        Plateforme & Linux-6.6.87.2-microsoft-standard-WSL2-x86\_64-with-glibc2.35 \\
+        Architecture & x86\_64 \\
+        Processeur & 12th Gen Intel(R) Core(TM) i7-12650H \\
+        Cœurs physiques & 8 \\
+        Cœurs logiques & 16 \\
+        Mémoire totale & 7.6 GiB \\
+        Espace d'échange & 2.0 GiB \\
+        \midrule
+        \multicolumn{2}{l}{\textbf{Environnement logiciel}} \\
+        Interpréteur Python & \texttt{/home/javit/parallele/examen/.venv/bin/python} \\
+        Version de Python & 3.10.12 \\
+        Version de NumPy & 2.2.6 \\
+        Version de Numba & 0.63.1 \\
+        Version de Matplotlib & 3.10.8 \\
+        Variable \texttt{NUMBA\_NUM\_THREADS} & non définie \\
+        \midrule
+        \multicolumn{2}{l}{\textbf{Paramètres du profilage initial}} \\
+        Jeu de données & \texttt{data/galaxy\_5000} \\
+        Pas de temps & 0.0015 \\
+        Grille cartésienne & \texttt{(15, 15, 1)} \\
+        Itérations mesurées & 30 \\
+        Itérations d'échauffement & 3 \\
+        Image générée & \texttt{docs/examen/imgs/profilage\_initial.png} \\
+        Mesures brutes & \texttt{results/profilage\_initial.csv} \\
+        \bottomrule
+    \end{tabularx}
+\end{table}
+
 \section{Profilage Initiale}
 
 Le profilage initial a été réalisé à l'aide du script \texttt{profilage\_initial.py}, conçu pour mesurer séparément le coût du calcul physique et celui de l'affichage dans \texttt{nbodies\_grid\_numba.py}. Le principe retenu consiste à exécuter la simulation sur le jeu de données \texttt{data/galaxy\_5000} avec les paramètres \texttt{dt = 0.0015} et une grille \texttt{(15,15,1)}, puis à chronométrer un nombre fini d'itérations représentatives. Afin d'éviter de fausser les mesures avec le coût de compilation JIT de \texttt{numba}, quelques itérations d'échauffement sont exécutées avant le début du profilage effectif.
@@ -193,6 +234,8 @@ Pour chaque itération mesurée, le script distingue trois phases : le traitemen
 L'analyse de la figure montre très nettement que le calcul domine largement le coût total d'une itération. En moyenne, le temps consacré au calcul atteint environ \texttt{834.5 ms} par itération, contre seulement \texttt{10.5 ms} pour l'affichage. Cela signifie que le calcul représente \texttt{98.8 \%} du temps total, alors que l'affichage ne représente qu'environ \texttt{1.2 \%}. 
 
 On en déduit que la partie la plus intéressante à paralléliser est le calcul des trajectoires, et plus précisément le calcul des accélérations gravitationnelles ainsi que la mise à jour des positions et vitesses. À l'inverse, paralléliser l'affichage apporterait un gain très limité, car cette partie ne constitue qu'une fraction marginale du temps d'exécution global.
+
+\section{Parallélisation en numba du code séquentiel}
 
 
 %---------------------------------------------------

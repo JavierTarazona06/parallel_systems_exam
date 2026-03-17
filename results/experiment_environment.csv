@@ -1,0 +1,22 @@
+categorie,parametre,valeur
+materiel,systeme_exploitation,Linux 6.6.87.2-microsoft-standard-WSL2
+materiel,plateforme,Linux-6.6.87.2-microsoft-standard-WSL2-x86_64-with-glibc2.35
+materiel,architecture,x86_64
+materiel,processeur,12th Gen Intel(R) Core(TM) i7-12650H
+materiel,coeurs_physiques,8
+materiel,coeurs_logiques,16
+materiel,memoire_totale,7.6 GiB
+materiel,swap_total,2.0 GiB
+logiciel,interpreteur_python,/home/javit/parallele/examen/.venv/bin/python
+logiciel,version_python,3.10.12
+logiciel,version_numpy,2.2.6
+logiciel,version_numba,0.63.1
+logiciel,version_matplotlib,3.10.8
+logiciel,numba_num_threads,non_defini
+profilage,jeu_de_donnees,data/galaxy_5000
+profilage,pas_de_temps,0.0015
+profilage,grille,"(15, 15, 1)"
+profilage,iterations_mesurees,30
+profilage,iterations_echauffement,3
+profilage,image_generee,docs/examen/imgs/profilage_initial.png
+profilage,mesures_csv,results/profilage_initial.csv
