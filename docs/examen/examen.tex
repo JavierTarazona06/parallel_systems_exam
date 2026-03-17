@@ -347,6 +347,19 @@ Les communications MPI ajoutent également un coût supplémentaire à chaque it
 
 En résumé, la version \texttt{numba} seule exploite beaucoup mieux le parallélisme en mémoire partagée sur cette machine, tandis que la version MPI1 souffre d'une exécution contrainte par le placement des processus et par les communications entre rangs. Cela explique pourquoi la séparation affichage/calcul, bien qu'intéressante d'un point de vue architectural, conduit ici à des accélérations nettement moins bonnes.
 
+\section{MPI2 : Parallélisation du calcul}
+
+La stratégie retenue dans cette seconde version MPI consiste à distribuer le calcul des trajectoires entre tous les processus, au lieu de réserver un seul rang au calcul comme dans MPI1. La grille cartésienne est découpée suivant l'axe \texttt{Ox} en bandes de cellules, chaque processus étant responsable d'un sous-ensemble contigu de cellules. Les étoiles sont alors réparties en fonction de la cellule à laquelle elles appartiennent. Chaque rang distingue ainsi ses étoiles \emph{propres}, c'est-à-dire celles contenues dans ses cellules locales, et les étoiles nécessaires au voisinage immédiat.
+
+Pour permettre le calcul des interactions proches sans échanger des données à chaque cellule, on utilise des cellules fantômes. Dans mon implémentation, chaque processus étend sa zone locale avec deux couches de cellules supplémentaires de part et d'autre, car le calcul direct des interactions locales utilise les cellules voisines jusqu'à une distance de deux cellules. À chaque pas de temps, chaque processus sélectionne donc les étoiles situées dans sa zone locale augmentée des cellules fantômes, reconstruit les structures de grille correspondantes, puis calcule l'accélération uniquement pour les étoiles dont il est propriétaire.
+
+Les tableaux globaux contenant la masse totale et le centre de masse de chaque cellule sont ensuite reconstruits collectivement. Chaque processus calcule d'abord les contributions associées à ses étoiles propres, puis ces contributions sont combinées avec des opérations \texttt{MPI.Allreduce} afin d'obtenir, sur tous les rangs, une vue cohérente de la grille globale. Cette étape permet de conserver la même logique de calcul que dans la version séquentielle tout en répartissant la charge entre les processus.
+
+Enfin, après la mise à jour des positions puis des vitesses, les nouvelles valeurs des étoiles propriétaires sont synchronisées entre tous les processus. Chaque rang dispose ainsi d'un état global cohérent pour l'itération suivante. Le rang 0 conserve uniquement le rôle d'affichage, tandis que le calcul des trajectoires est cette fois réellement distribué entre les processus MPI.
+
+
+\subsection{Accélération obtenue}
+
 
 
 %---------------------------------------------------
