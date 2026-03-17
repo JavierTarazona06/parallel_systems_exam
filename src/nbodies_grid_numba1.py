@@ -43,7 +43,7 @@ def generate_star_color(mass : float) -> tuple[int, int, int]:
         # Étoiles de faible masse: rouge-orange
         return (255, 150, 100)
 
-@njit
+@njit(parallel=True)
 def update_stars_in_grid( cell_start_indices : np.ndarray, body_indices : np.ndarray,
                           cell_masses : np.ndarray, cell_com_positions : np.ndarray,
                           masses: np.ndarray,
@@ -84,7 +84,7 @@ def update_stars_in_grid( cell_start_indices : np.ndarray, body_indices : np.nda
         body_indices[index_in_cell] = ibody
         current_counts[morse_idx] += 1
     # Maintenant, on peut calculer le centre de masse et la masse totale de chaque cellule
-    for i in range(len(cell_counts)):
+    for i in prange(len(cell_counts)):
         cell_mass = 0.0
         com_position = np.zeros(3, dtype=np.float32)
         start_idx = cell_start_indices[i]
@@ -100,7 +100,7 @@ def update_stars_in_grid( cell_start_indices : np.ndarray, body_indices : np.nda
         cell_masses[i] = cell_mass
         cell_com_positions[i] = com_position
 
-@njit
+@njit(parallel=True)
 def compute_acceleration( positions : np.ndarray, masses : np.ndarray,
                           cell_start_indices : np.ndarray, body_indices : np.ndarray,
                           cell_masses : np.ndarray, cell_com_positions : np.ndarray,
@@ -108,7 +108,7 @@ def compute_acceleration( positions : np.ndarray, masses : np.ndarray,
                           cell_size : np.ndarray, n_cells : np.ndarray):
     n_bodies = positions.shape[0]
     a = np.zeros_like(positions)
-    for ibody in range(n_bodies):
+    for ibody in prange(n_bodies):
         pos = positions[ibody]
         cell_idx = np.floor((pos - grid_min) / cell_size).astype(np.int64)
         for i in range(3):

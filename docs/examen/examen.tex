@@ -237,6 +237,14 @@ On en déduit que la partie la plus intéressante à paralléliser est le calcul
 
 \section{Parallélisation en numba du code séquentiel}
 
+Pour cette étape, une version dédiée du code a été préparée dans le fichier \texttt{nbodies\_grid\_numba1.py}. L'objectif a été de réaliser des modifications minimales, dans l'esprit d'une première parallélisation simple avec \texttt{numba}, en ajoutant l'option \texttt{parallel=True} aux fonctions compilées avec \texttt{njit} lorsque cela avait du sens, puis en remplaçant certaines boucles \texttt{range} par \texttt{prange}.
+
+Le changement principal a été appliqué dans la fonction \texttt{compute\_acceleration}. La boucle externe sur les corps a été remplacée par \texttt{prange}, car le calcul de l'accélération de chaque étoile est indépendant de celui des autres étoiles. Chaque itération écrit uniquement dans la ligne correspondante du tableau \texttt{a}, ce qui rend cette boucle naturellement parallélisable.
+
+Un second changement a été introduit dans \texttt{update\_stars\_in\_grid}, mais de manière plus prudente. Seule la boucle finale qui calcule, pour chaque cellule, la masse totale et le centre de masse a été parallélisée avec \texttt{prange}, car chaque cellule est traitée indépendamment une fois que les indices des corps ont déjà été construits. En revanche, les boucles qui remplissent \texttt{cell\_counts} et \texttt{current\_counts} ont été laissées séquentielles, car plusieurs itérations peuvent y modifier simultanément les mêmes cases mémoire, ce qui créerait des conflits d'écriture.
+
+Cette approche reste volontairement simple et conservatrice : elle permet d'obtenir une première version parallélisée sans refondre l'algorithme, tout en évitant d'introduire des erreurs liées aux accès concurrents sur des données partagées.
+
 
 %---------------------------------------------------
 % FIN DU RAPPORT.
