@@ -180,11 +180,19 @@ dans la direction Oz, c'est-à-dire sur l'axe z.
 
 \section{Profilage Initiale}
 
+Le profilage initial a été réalisé à l'aide du script \texttt{profilage\_initial.py}, conçu pour mesurer séparément le coût du calcul physique et celui de l'affichage dans \texttt{nbodies\_grid\_numba.py}. Le principe retenu consiste à exécuter la simulation sur le jeu de données \texttt{data/galaxy\_5000} avec les paramètres \texttt{dt = 0.0015} et une grille \texttt{(15,15,1)}, puis à chronométrer un nombre fini d'itérations représentatives. Afin d'éviter de fausser les mesures avec le coût de compilation JIT de \texttt{numba}, quelques itérations d'échauffement sont exécutées avant le début du profilage effectif.
+
+Pour chaque itération mesurée, le script distingue trois phases : le traitement des événements et le rendu OpenGL, le calcul des trajectoires des étoiles, puis la synchronisation des nouvelles positions vers le visualiseur. Les temps d'affichage regroupent le rendu et cette synchronisation, tandis que le temps de calcul correspond à la mise à jour du système gravitationnel. Les mesures brutes sont sauvegardées dans un fichier CSV, puis une figure de synthèse est générée automatiquement pour faciliter l'analyse.
+
 \begin{figure}[H]
     \centering
     \includegraphics[width=\textwidth]{imgs/profilage_initial.png}
     \caption{Comparaison du temps moyen passé dans l'affichage et dans le calcul pour \texttt{nbodies\_grid\_numba.py}.}
 \end{figure}
+
+L'analyse de la figure montre très nettement que le calcul domine largement le coût total d'une itération. En moyenne, le temps consacré au calcul atteint environ \texttt{834.5 ms} par itération, contre seulement \texttt{10.5 ms} pour l'affichage. Cela signifie que le calcul représente \texttt{98.8 \%} du temps total, alors que l'affichage ne représente qu'environ \texttt{1.2 \%}. 
+
+On en déduit que la partie la plus intéressante à paralléliser est le calcul des trajectoires, et plus précisément le calcul des accélérations gravitationnelles ainsi que la mise à jour des positions et vitesses. À l'inverse, paralléliser l'affichage apporterait un gain très limité, car cette partie ne constitue qu'une fraction marginale du temps d'exécution global.
 
 
 %---------------------------------------------------

@@ -72,7 +72,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--csv",
         type=Path,
-        default=REPO_ROOT / "docs" / "examen" / "imgs" / "profilage_initial.csv",
+        default=REPO_ROOT / "results" / "profilage_initial.csv",
         help="Fichier CSV de sortie pour les mesures brutes.",
     )
     return parser.parse_args()
