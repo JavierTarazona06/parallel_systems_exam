@@ -255,7 +255,7 @@ Le changement principal a été appliqué dans la fonction \texttt{compute\_acce
 
 Un second changement a été introduit dans \texttt{update\_stars\_in\_grid}, mais de manière plus prudente. Seule la boucle finale qui calcule, pour chaque cellule, la masse totale et le centre de masse a été parallélisée avec \texttt{prange}, car chaque cellule est traitée indépendamment une fois que les indices des corps ont déjà été construits. En revanche, les boucles qui remplissent \texttt{cell\_counts} et \texttt{current\_counts} ont été laissées séquentielles, car plusieurs itérations peuvent y modifier simultanément les mêmes cases mémoire, ce qui créerait des conflits d'écriture.
 
-Cette approche reste volontairement simple et conservatrice : elle permet d'obtenir une première version parallélisée sans refondre l'algorithme, tout en évitant d'introduire des erreurs liées aux accès concurrents sur des données partagées.
+Cette approche est simple et conservatrice : elle permet d'obtenir une première version parallélisée sans refondre l'algorithme, tout en évitant d'introduire des erreurs liées aux accès concurrents sur des données partagées.
 
 \subsection{Accélération obtenue}
 
@@ -272,6 +272,12 @@ Les mesures portent uniquement sur le temps de calcul des trajectoires, sans pre
 La figure montre que le temps moyen par itération diminue lorsque le nombre de threads augmente, ce qui confirme l'intérêt de la parallélisation \texttt{numba} sur les boucles les plus coûteuses du calcul. La meilleure performance mesurée est obtenue avec 5 threads, pour une accélération d'environ \texttt{3.19x} par rapport à l'exécution mono-thread. L'accélération reste toutefois sous-linéaire, ce qui est cohérent avec la présence de parties demeurant séquentielles, avec les surcoûts de synchronisation entre threads et avec les accès mémoire partagés.
 
 \section{Séparation de l'affichage et du calcul}
+
+La stratégie retenue consiste à utiliser deux processus MPI avec une répartition fonctionnelle très simple. Le processus de rang 0 est dédié à l'affichage, tandis que le processus de rang 1 est dédié au calcul des trajectoires. Chaque processus charge localement le même système initial, mais leurs responsabilités sont ensuite séparées : le rang 0 crée la fenêtre SDL/OpenGL et gère l'interaction utilisateur, alors que le rang 1 exécute la mise à jour physique du système.
+
+Concrètement, le processus 0 pilote la boucle principale. À chaque itération, il traite les événements de la fenêtre, puis envoie au processus 1 un signal indiquant si la simulation doit continuer, ainsi que la valeur du pas de temps. Le processus 1 reçoit cette information, exécute \texttt{update\_positions(dt)} pour calculer les nouvelles positions des étoiles, puis renvoie le tableau des positions au processus 0 par MPI. Le processus 0 met alors à jour le visualiseur avec ces nouvelles positions et effectue le rendu de l'image.
+
+Cette approche présente l'avantage d'être minimale et facile à mettre en œuvre : elle ne modifie pas l'algorithme physique lui-même, mais sépare proprement la partie graphique de la partie calculatoire. Le processus 0 reste ainsi responsable de l'affichage et de l'arrêt de la simulation, tandis que le processus 1 se comporte comme un serveur de calcul qui ne fait qu'attendre les demandes du rang 0, calculer un pas de temps, puis renvoyer les résultats.
 
 
 

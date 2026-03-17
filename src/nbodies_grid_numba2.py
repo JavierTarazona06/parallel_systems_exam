@@ -5,6 +5,7 @@ import numpy as np
 import visualizer3d
 import sys
 from numba import njit, prange
+from mpi4py import MPI
 
 # Unités:
 # - Distance: année-lumière (ly)
@@ -229,16 +230,73 @@ def update_positions(dt : float):
     system.update_positions(dt)
     return system.positions
 
-def run_simulation(filename, geometry=(800,600), ncells_per_dir : tuple[int, int, int] = (10,10,10), dt=0.001):
-    # Initialise le système de corps :
-    global system
-    system = NBodySystem(filename, ncells_per_dir=ncells_per_dir)
-    # Initialise l'affichage graphique :
+
+def create_visualizer(system: NBodySystem):
     pos = system.positions
     col = system.colors
     intensity = np.clip(system.masses / system.max_mass, 0.5, 1.0)
-    visu = visualizer3d.Visualizer3D(pos, col, intensity,  [[system.box[0][0], system.box[1][0]], [system.box[0][1], system.box[1][1]], [system.box[0][2], system.box[1][2]]])
-    visu.run(updater=update_positions, dt = dt)
+    bounds = [
+        [system.box[0][0], system.box[1][0]],
+        [system.box[0][1], system.box[1][1]],
+        [system.box[0][2], system.box[1][2]],
+    ]
+    return visualizer3d.Visualizer3D(pos, col, intensity, bounds)
+
+
+def run_display_process(filename, ncells_per_dir : tuple[int, int, int], dt, comm):
+    local_system = NBodySystem(filename, ncells_per_dir=ncells_per_dir)
+    visu = create_visualizer(local_system)
+
+    print("Contrôles :")
+    print("  - Clic gauche + déplacement souris : rotation de la caméra")
+    print("  - Molette de la souris : zoom")
+    print("  - ESC ou fermeture de fenêtre : quitter")
+
+    running = True
+    while running:
+        running = visu._handle_events()
+        comm.send(running, dest=1, tag=0)
+        if not running:
+            break
+
+        comm.send(dt, dest=1, tag=1)
+        comm.Recv([local_system.positions, MPI.FLOAT], source=1, tag=2)
+        visu.update_points(local_system.positions)
+        visu._render()
+
+    visu.cleanup()
+
+
+def run_compute_process(filename, ncells_per_dir : tuple[int, int, int], comm):
+    local_system = NBodySystem(filename, ncells_per_dir=ncells_per_dir)
+
+    while True:
+        running = comm.recv(source=0, tag=0)
+        if not running:
+            break
+
+        dt = comm.recv(source=0, tag=1)
+        local_system.update_positions(dt)
+        comm.Send([local_system.positions, MPI.FLOAT], dest=0, tag=2)
+
+def run_simulation(filename, geometry=(800,600), ncells_per_dir : tuple[int, int, int] = (10,10,10), dt=0.001):
+    comm = MPI.COMM_WORLD
+    rank = comm.Get_rank()
+    size = comm.Get_size()
+
+    if size < 2:
+        if rank == 0:
+            print("Exécution séquentielle : lancer avec au moins 2 processus MPI pour séparer affichage et calcul.")
+            global system
+            system = NBodySystem(filename, ncells_per_dir=ncells_per_dir)
+            visu = create_visualizer(system)
+            visu.run(updater=update_positions, dt=dt)
+        return
+
+    if rank == 0:
+        run_display_process(filename, ncells_per_dir, dt, comm)
+    elif rank == 1:
+        run_compute_process(filename, ncells_per_dir, comm)
 
 
 def main(argv=None):
