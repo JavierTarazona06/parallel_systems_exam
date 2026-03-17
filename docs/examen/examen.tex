@@ -225,6 +225,18 @@ Le profilage initial a été réalisé à l'aide du script \texttt{profilage\_in
 
 Pour chaque itération mesurée, le script distingue trois phases : le traitement des événements et le rendu OpenGL, le calcul des trajectoires des étoiles, puis la synchronisation des nouvelles positions vers le visualiseur. Les temps d'affichage regroupent le rendu et cette synchronisation, tandis que le temps de calcul correspond à la mise à jour du système gravitationnel. Les mesures brutes sont sauvegardées dans un fichier CSV, puis une figure de synthèse est générée automatiquement pour faciliter l'analyse.
 
+\begin{table}[H]
+    \centering
+    \caption{Décomposition des temps mesurés pendant une itération.}
+    \begin{tabular}{ll}
+        \toprule
+        Temps d'affichage & Temps de calcul \\
+        \midrule
+        Rendu OpenGL et synchronisation des nouvelles positions & Mise à jour du système gravitationnel \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
 \begin{figure}[H]
     \centering
     \includegraphics[width=\textwidth]{imgs/profilage_initial.png}
@@ -258,6 +270,10 @@ Les mesures portent uniquement sur le temps de calcul des trajectoires, sans pre
 \end{figure}
 
 La figure montre que le temps moyen par itération diminue lorsque le nombre de threads augmente, ce qui confirme l'intérêt de la parallélisation \texttt{numba} sur les boucles les plus coûteuses du calcul. La meilleure performance mesurée est obtenue avec 5 threads, pour une accélération d'environ \texttt{3.19x} par rapport à l'exécution mono-thread. L'accélération reste toutefois sous-linéaire, ce qui est cohérent avec la présence de parties demeurant séquentielles, avec les surcoûts de synchronisation entre threads et avec les accès mémoire partagés.
+
+\section{Séparation de l'affichage et du calcul}
+
+
 
 %---------------------------------------------------
 % FIN DU RAPPORT.
