@@ -376,6 +376,8 @@ def distributed_update_positions(system: NBodySystem, dt: float, comm):
         system.grid.n_cells,
     )
     owned_accelerations = local_accelerations[owned_local_indices].copy()
+    global_accelerations = np.zeros_like(system.positions)
+    synchronize_owned_values(global_accelerations, owned_global_indices, owned_accelerations, comm)
 
     owned_positions += owned_velocities * dt + 0.5 * owned_accelerations * dt * dt
     synchronize_owned_values(system.positions, owned_global_indices, owned_positions, comm)
@@ -408,7 +410,8 @@ def distributed_update_positions(system: NBodySystem, dt: float, comm):
     )
     owned_accelerations_new = local_accelerations_new[owned_local_indices].copy()
 
-    owned_velocities += 0.5 * (owned_accelerations + owned_accelerations_new) * dt
+    owned_accelerations_old = global_accelerations[owned_global_indices].copy()
+    owned_velocities += 0.5 * (owned_accelerations_old + owned_accelerations_new) * dt
     synchronize_owned_values(system.velocities, owned_global_indices, owned_velocities, comm)
 
     system.grid.cell_masses[:] = global_cell_masses

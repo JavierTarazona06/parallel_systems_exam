@@ -360,10 +360,85 @@ Enfin, après la mise à jour des positions puis des vitesses, les nouvelles val
 
 \subsection{Accélération obtenue}
 
+\textbf{Execution 8*8 interrompu car il
+a depnsé beaucoup de temps pour
+exécuter}
+
+L'accélération de la version MPI2 a été mesurée à l'aide du script \texttt{nbodies3\_acceleration.py}. Contrairement à MPI1, cette version distribue le calcul entre plusieurs processus MPI, tout en conservant la parallélisation locale par \texttt{numba} à l'intérieur de chaque processus. Les mesures ont donc été réalisées en faisant varier à la fois le nombre de processus MPI et le nombre de threads \texttt{numba}, de 1 à 2 pour les processus et de 1 à 2 pour les threads. Les paramètres expérimentaux ont été repris de \texttt{results/experiment\_environment.csv}, soit le jeu de données \texttt{data/galaxy\_5000}, un pas de temps \texttt{0.0015}, une grille \texttt{(15, 15, 1)}, 30 itérations mesurées et 3 itérations d'échauffement.
+
+Le temps mesuré correspond ici au coût d'une itération complète du calcul distribué, en incluant les synchronisations MPI nécessaires entre les processus. Le cas de référence est la configuration à un seul processus et un seul thread, utilisée pour calculer l'accélération de toutes les autres configurations.
+
+\begin{table}[H]
+    \centering
+    \small
+    \begin{tabular}{ccc}
+        \toprule
+        Processus / Threads & 1 & 2 \\
+        \midrule
+        1 & 1.00 & 1.42 \\
+        2 & 1.18 & 1.67 \\
+        \bottomrule
+    \end{tabular}
+    \caption{Accélération mesurée pour \texttt{nbodies\_grid\_numba3.py} en fonction du nombre de processus MPI et du nombre de threads Numba.}
+\end{table}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\textwidth]{imgs/nbodies3_time_heatmap.png}
+    \caption{Temps moyen par itération de \texttt{nbodies\_grid\_numba3.py} en fonction du nombre de processus MPI et du nombre de threads Numba.}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\textwidth]{imgs/nbodies3_speedup_heatmap.png}
+    \caption{Accélération de \texttt{nbodies\_grid\_numba3.py} relativement au cas 1 processus / 1 thread.}
+\end{figure}
+
+La meilleure configuration mesurée est obtenue avec 2 processus MPI et 2 threads Numba, pour un temps moyen d'environ \texttt{104.54 ms} par itération et une accélération de \texttt{1.67x}. Les résultats permettent ainsi d'observer l'effet combiné du parallélisme distribué et du parallélisme en mémoire partagée, ainsi que les limites introduites par les synchronisations MPI et par la concurrence entre threads lorsque le degré de parallélisme devient trop élevé sur la machine utilisée.
 
 
 %---------------------------------------------------
 % FIN DU RAPPORT.
 %---------------------------------------------------
+
+\subsection{Problème de performance - L'éloignement}
+
+\paragraph{Problème de performance}
+
+Le principal problème est un \textbf{déséquilibre de charge} (\textit{load imbalance}). En effet, la densité d'étoiles est plus forte près du trou noir, donc les processus qui traitent les cellules centrales ont davantage d'étoiles à gérer et plus d'interactions à calculer que les processus affectés aux zones périphériques.
+
+Par conséquent, certains processus terminent rapidement tandis que d'autres restent beaucoup plus longtemps en calcul. Comme le temps total d'une itération est imposé par le processus le plus lent, l'accélération parallèle est alors limitée.
+
+Ainsi, même si le travail est réparti géométriquement de manière régulière, la charge de calcul, elle, ne l'est pas. Cela peut fortement handicaper les performances globales de l'algorithme parallèle.
+
+\subsection{Distribution "intelligente"}
+
+\paragraph{Distribution intelligente des cellules}
+
+Une distribution plus intelligente consiste à ne plus répartir les cellules de manière uniforme en espace, mais de manière à équilibrer la charge de calcul entre les processus. Comme la densité d'étoiles est plus forte près du trou noir, les cellules centrales coûtent davantage en calcul que les cellules éloignées. On peut donc attribuer à chaque processus un nombre \emph{variable} de cellules : peu de cellules dans les zones denses, et davantage de cellules dans les zones peu denses.
+
+Par exemple, on peut construire des bandes suivant l'axe \(x\) de largeur non uniforme, de sorte que chaque processus possède approximativement le même nombre d'étoiles, ou plus généralement le même coût estimé de calcul. Ainsi, la région centrale de la galaxie serait découpée plus finement, tandis que les régions périphériques seraient regroupées dans des sous-domaines plus larges.
+
+\paragraph{Problème de performance possible}
+
+Le principal risque est alors une \textbf{augmentation du coût des communications}. En effet, une répartition non uniforme peut créer des sous-domaines plus irréguliers, augmenter la taille relative des zones fantômes et multiplier les échanges entre processus. De plus, si l'on adapte dynamiquement la distribution au cours du temps pour suivre le déplacement des étoiles, il faut redistribuer plus souvent les données, ce qui ajoute un surcoût de communication et de synchronisation.
+
+Ainsi, une distribution intelligente améliore l'équilibrage de charge, mais elle peut faire apparaître un nouveau goulet d'étranglement : la communication MPI peut devenir plus coûteuse et limiter le gain global.
+
+\section{Parallélisation avec Barnes--Hut}
+
+\paragraph{Distribution des boîtes et sous-boîtes}
+
+On suppose que le nombre de processus est $P=4^k$. Une distribution naturelle consiste à couper le quadtree au niveau $k$ et à attribuer à chaque processus une boîte de ce niveau, ainsi que tout le sous-arbre situé en dessous. Les boîtes situées aux niveaux supérieurs peuvent être partagées entre plusieurs processus, ce qui est autorisé par l'énoncé.
+
+Cette stratégie est adaptée à la structure du quadtree, car elle respecte la décomposition spatiale du domaine. Elle permet aussi de limiter les communications, puisque chaque processus travaille principalement sur un sous-arbre local. En revanche, si les étoiles sont réparties de manière non uniforme, certaines boîtes peuvent contenir beaucoup plus d'étoiles que d'autres. Il faut donc éventuellement équilibrer la charge en tenant compte du nombre d'étoiles contenues dans chaque sous-arbre.
+
+\paragraph{Parallélisation MPI du calcul des accélérations}
+
+À chaque pas de temps, on commence par calculer la boîte englobante globale, puis on redistribue les étoiles entre les processus selon leur position. Chaque processus construit ensuite localement son sous-arbre de quadtree et calcule, de bas en haut, les masses totales et centres de masse des boîtes qu'il possède.
+
+Pour les boîtes partagées entre plusieurs processus, on effectue des communications MPI afin de combiner les masses et les centres de masse. Une fois ces informations disponibles, chaque processus calcule l'accélération des étoiles locales. Pour les régions lointaines, il suffit d'utiliser les données agrégées d'une boîte (masse totale et centre de masse). Pour les régions proches, il faut descendre récursivement dans les sous-boîtes, voire accéder aux étoiles individuelles si l'on atteint une feuille.
+
+Ainsi, le calcul est parallélisé en répartissant les sous-arbres entre les processus, tandis que MPI sert à échanger les informations globales nécessaires sur les boîtes partagées. Cette méthode permet de conserver l'intérêt principal de Barnes--Hut, c'est-à-dire un coût en ordre de grandeur $N \log N$ tout en répartissant le travail entre plusieurs processus.
 
 \end{document}
